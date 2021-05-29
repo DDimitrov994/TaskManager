@@ -1,7 +1,48 @@
-
+var userId;
 function changePage(){
     window.location="reg.html";
 }
+function registerUser(){
+    var username=document.getElementById('userName').value;
+    var userEmail=document.getElementById('exampleInputEmail1').value;
+    var password=document.getElementById('Password1').value;
+    var repeatedpassword=document.getElementById('RepeatPassword1').value;
+    if(repeatedpassword!=password){
+        alert('password doesnt match')
+    }else{
+        var objUser={
+        name: username,
+        email: userEmail,
+        pw: password
+    };
+    axios.post('http://localhost:5000/checkUserData',objUser)
+  .then((response) => {
+      if(response.data=='yes'){
+        window.location="http://localhost:5000/index.html";
+      }else{alert(response.data);}   
+  },error=>console.log(error));
+        
+    }
+}
+
+function login(){
+    var email=document.getElementById('exampleInputEmail1').value;
+    var password=document.getElementById('exampleInputPassword1').value;
+    var userLogin={
+        email: email,
+        pw: password
+    };
+    axios.post('http://localhost:5000/checkUserLogin',userLogin)
+  .then((response) => { 
+      if(response.data=='no'){
+          alert('Wrong password or email');
+      }else{
+          userId=response.data;
+          window.location="http://localhost:5000/index.html";
+      };
+    });
+
+};
 
 
 var idd;
@@ -111,7 +152,7 @@ function modalButton(event){
     }
 }
 function myFunction(){
-    axios.get('http://localhost:5000/getTasks')
+    axios.get('http://localhost:5000/getTasks',userId)
       .then((response) => {
           arr=response.data;
           for (var i=0;i<response.data.length;i++){
