@@ -74,7 +74,7 @@ app.post('/checkUserLogin', function (req, res) {
          email: userInput.email,
          pw: userInput.pw
       };
-      dbo.collection("Users").find({query}).toArray(function (err,result){
+      dbo.collection("Users").find(query).toArray(function (err,result){
          if (err) throw err;
          if(result.length==1){
             res.send(result[0]._id);
