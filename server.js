@@ -1,4 +1,6 @@
 var mongo = require('mongodb');
+var ObjectID = require('mongodb').ObjectID;
+var ObjectId = require('mongodb').ObjectId;
 var express = require('express');
 var bodyParser = require('body-parser')
 var app = express();
@@ -30,10 +32,41 @@ var tasks = [];//
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
-
+app.get('/getTaskId', function (req, res) {
+   var TaskbuttonId=req.query.buttonId;
+   MongoClient.connect(url, {poolSize: 100},function (err, db) {
+      if (err) throw err;
+      var dbo = db.db("ToDoList");
+      var o_id = new ObjectId(TaskbuttonId);
+      dbo.collection("Tasks").find({_id:o_id}).forEach(function (result){
+         var taskarray=[];
+         taskarray.push(result)
+         if(taskarray.length==1){
+            res.send(result);
+            db.close();
+         }else{
+            res.send('no');
+            db.close();
+         }
+      })
+   
+   });
+   
+});
+//localhost:5000/getTask?userId=9859385943858359
 app.get('/getTasks', function (req, res) {
-   var userId=req.body;
-   res.send(tasks);
+   var userId=req.query.userId;
+   MongoClient.connect(url, {poolSize: 100},function (err, db) {
+      if (err) throw err;
+      var dbo = db.db("ToDoList");
+      dbo.collection("Tasks").find({CreatedBy: userId}).toArray(function (err,result){
+         if (err) throw err;
+            res.send(result);
+            db.close();
+         
+      })
+   
+   });
 });
 
 app.post('/checkUserData', function (req, res) {
@@ -89,34 +122,75 @@ app.post('/checkUserLogin', function (req, res) {
 
 app.post('/saveTask', function (req, res) {
    // console.log(req.data);
+   MongoClient.connect(url, {poolSize: 100},function (err, db) {
+      if (err) throw err;
+      var dbo = db.db("ToDoList");
    var task = req.body;//obj
-   console.log(task);
-   task.id = count;
-   tasks.push(task);
-   res.send(count + '');
-   count++;
+   dbo.collection("Tasks").insertOne(task, function (err, result) {
+      console.log(result);
+      if (err) throw err;
+      res.send(result.insertedId);
+      db.close();
+   });
+   // console.log(task);
+   // task.id = count;
+   // tasks.push(task);
+   // res.send(count + '');
+   // count++;
+});
+});
+app.put('/getCurrentTask', function (req, res) {
+   // console.log(req.data);
+   MongoClient.connect(url, {poolSize: 100},function (err, db) {
+      if (err) throw err;
+      var dbo = db.db("ToDoList");
+      var buttonId={_id: new ObjectID(req.body.button)};
+   var newValues = {
+      $set: { 'title': req.body.title,
+      'description': req.body.description,
+      }
+   };
+   dbo.collection("Tasks").updateOne(buttonId,newValues, function (err, result) {
+      console.log(result);
+      if (err) throw err;
+      res.send(result._id);
+      db.close();
+   });
+});
 });
 app.put('/moveTask', function (req, res) {
    // console.log(req.data);
-   var task = req.body;
+   MongoClient.connect(url, {poolSize: 100},function (err, db) {
+      if (err) throw err;
+      var dbo = db.db("ToDoList");
+   var task ={
+      $set:{'status': req.body.taskStatus}
+   };
+   var taskId={_id: new ObjectID(req.body.taskId)};
 
-   for (var i = 0; i < tasks.length; i++) {
-      if (tasks[i].id == task.id) {
-         tasks[i].status = task.status;
-      }
-   }
-
-   // tasks.push(task);
-   res.send('Task Moved');
+   dbo.collection("Tasks").updateOne(taskId,task, function (err, result) {
+      console.log(result);
+      if (err) throw err;
+      res.send(result._id);
+      db.close();
+   });
+});
 });
 app.delete('/deleteTask', function (req, res) {
-   var task = req.body;
-   for (var i = 0; i < tasks.length; i++) {
-      if (tasks[i].id == task.id) {
-         tasks.splice(i, 1);
+   MongoClient.connect(url, {poolSize: 100},function (err, db) {
+      if (err) throw err;
+      var dbo = db.db("ToDoList");
+   var taskId ={ _id: new ObjectId(req.query.taskId)};
+   dbo.collection("Tasks").deleteOne(taskId, function (err, result) {
+      
+      if (err) throw err;
+      if (err==null){
+         res.status(200).send('task deleted')
       }
-   }
-   res.send('Task Deleted');
+      db.close();
+   });
+   
+});
 });
 
 

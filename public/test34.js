@@ -18,7 +18,7 @@ function registerUser(){
     axios.post('http://localhost:5000/checkUserData',objUser)
   .then((response) => {
       if(response.data=='yes'){
-        window.location="http://localhost:5000/index.html";
+        window.location="http://localhost:5000/taskPage.html";
       }else{alert(response.data);}   
   },error=>console.log(error));
         
@@ -38,7 +38,8 @@ function login(){
           alert('Wrong password or email');
       }else{
           userId=response.data;
-          window.location="http://localhost:5000/index.html";
+          localStorage.setItem('id', userId);
+          window.location="http://localhost:5000/taskPage.html";
       };
     });
 
@@ -46,7 +47,6 @@ function login(){
 
 
 var idd;
-var idd2;
 
 var arr=[];
 function taskAdding(id, ul, valueOftitle){
@@ -57,34 +57,61 @@ function taskAdding(id, ul, valueOftitle){
     button.setAttributeNode(tAttribute);
     
 
-    var bAttribute=document.createAttribute('data-bs-toggle');
-    bAttribute.value='modal';
+    var bAttribute = document.createAttribute('data-bs-toggle');
+    bAttribute.value = 'modal';
     button.setAttributeNode(bAttribute);
 
-    var butAttribute=document.createAttribute('data-bs-target');
-    butAttribute.value='#taskModal';
+    var butAttribute = document.createAttribute('data-bs-target');
+    butAttribute.value = '#taskModal';
     button.setAttributeNode(butAttribute);
-    button.addEventListener('click',modalButton);
-    button.textContent=valueOftitle;
+    button.addEventListener('click', modalButton);
+    button.textContent = valueOftitle;
 
     li.append(button);//='<button type="button"> </button>'
-    var draggable=document.createAttribute('draggable');
-    draggable.value='true';
+    var draggable = document.createAttribute('draggable');
+    draggable.value = 'true';
     button.setAttributeNode(draggable);
-    var idAttr=document.createAttribute('id');
-    idAttr.value=id;
+    var idAttr = document.createAttribute('id');
+    idAttr.value = id;
     button.setAttributeNode(idAttr);
-    button.addEventListener('dragstart',drag);
+    button.addEventListener('dragstart', drag);
     ul.append(li);
-    
+
 
 }
-function save2(){
+function modalButton(event) {
+
+    var pDescr = document.getElementById('taskDesc');
+    var htitle = document.getElementById('taskTitle');
+    axios.get('http://localhost:5000/getTaskId', {
+        params: {
+            buttonId: event.target.id
+        } })
+        .then((response) => {
+            var clickedTask = response.data;
+            idd = response.data._id;
+            htitle.value = clickedTask.title;
+            pDescr.value = clickedTask.description;
+            if (clickedTask.status == 'done') {
+                document.getElementById("bSave").style.display = 'none';
+                document.getElementById("bEdit").style.display = 'none';
+            } else {
+                document.getElementById("bSave").style.display = 'none';
+                document.getElementById("bEdit").style.display = 'block';
+
+            }
+        }, (error) => {
+            console.log(error);
+        });
+}
+    
+
+function createTask(){
     
     var valueOftitle=document.getElementById('title').value;
     var valueOfDescr=document.getElementById('floatingTextarea2').value;
     var obj={
-        id: '',
+        CreatedBy: userId,
         title: valueOftitle,
         description: valueOfDescr,
         status: 'toDo'
@@ -116,7 +143,7 @@ function save2(){
     //req.body=obj;
     axios.post('http://localhost:5000/saveTask', obj)
       .then((response) => {
-        obj.id=response.data;//id
+        // obj.id=response.data;//id
         var id=document.createAttribute('id');
         id.value=response.data;
         button.setAttributeNode(id);
@@ -131,38 +158,23 @@ function save2(){
     document.getElementById('title').value='';
     document.getElementById('floatingTextarea2').value='';
 }
-function modalButton(event){
-    
-    var pDescr=document.getElementById('taskDesc');
-    var htitle=document.getElementById('taskTitle');
-    for (var i=0;i<arr.length;i++){
-        if (arr[i].id==event.target.id){
-            htitle.value=arr[i].title;
-            pDescr.value=arr[i].description;
-            idd=arr[i].id;
-            if(arr[i].status=='done'){
-                document.getElementById("bSave").style.display='none';
-                document.getElementById("bEdit").style.display='none';
-            }else{
-                document.getElementById("bSave").style.display='none';
-                document.getElementById("bEdit").style.display='block';
-    
-            }
+function onLoad(){
+    userId=localStorage.getItem('id');
+    axios.get('http://localhost:5000/getTasks', {
+        params: {
+            userId: userId
         }
-    }
-}
-function myFunction(){
-    axios.get('http://localhost:5000/getTasks',userId)
+      })
       .then((response) => {
-          arr=response.data;
-          for (var i=0;i<response.data.length;i++){
-              if(response.data[i].status=='toDo'){
-                taskAdding(response.data[i].id, document.getElementById('todo'), response.data[i].title);
+          userTasks=response.data;
+          for (var i=0;i<userTasks.length;i++){
+              if(userTasks[i].status=='toDo'){
+                taskAdding(userTasks[i]._id, document.getElementById('todo'), userTasks[i].title);
                   
-              }else if(response.data[i].status=='inProgress'){
-                taskAdding(response.data[i].id, document.getElementById('inProgress'), response.data[i].title);
-            }else if(response.data[i].status=='done'){
-                taskAdding(response.data[i].id, document.getElementById('done'), response.data[i].title);
+              }else if(userTasks[i].status=='inProgress'){
+                taskAdding(userTasks[i]._id, document.getElementById('inProgress'), userTasks[i].title);
+            }else if(userTasks[i].status=='done'){
+                taskAdding(userTasks[i]._id, document.getElementById('done'), userTasks[i].title);
             }
           }
       }, (error) => {
@@ -170,7 +182,7 @@ function myFunction(){
       });
     document.getElementById("bSave").style.display='none';
 }
-function edit(){
+function editTask(){
     document.getElementById("bSave").style.display='block';
     document.getElementById("bEdit").style.display='none';
     var htitle=document.getElementById('taskTitle');
@@ -179,7 +191,7 @@ function edit(){
     pDescr.readOnly=false;
 }
     
-function save(event){
+function saveTask(event){
     document.getElementById("bSave").style.display='none';
     document.getElementById("bEdit").style.display='block';
     var htitle=document.getElementById('taskTitle');
@@ -187,6 +199,15 @@ function save(event){
     htitle.readOnly=true;
     pDescr.readOnly=true;
     var but=document.getElementById(idd);
+    var update={
+            button: idd,
+            title: htitle.value,
+            description: pDescr.value,
+          
+        };
+        axios.put('http://localhost:5000/getCurrentTask',update)
+      .then((response) => {
+       taskToSave=response.data;
     for (var i=0;i<arr.length;i++){
         if (arr[i].id==idd){
             arr[i].title=htitle.value;
@@ -196,7 +217,9 @@ function save(event){
     }
     
     but.textContent=htitle.value;
-}
+    });
+    
+};
 function liRemove(){
     var ulID=document.getElementById('todo');
     var ulID2=document.getElementById('inProgress');
@@ -216,19 +239,24 @@ function liRemove(){
 
 }
 
-function deletee(event){
-    for (var i=0;i<arr.length;i++){
-        if(arr[i].id==idd){
+function deleteTask(event){
+    
             
             var liTarget=document.getElementById(idd);
             liTarget.parentNode.remove();
-            axios.delete('http://localhost:5000/deleteTask', {data:arr[i]})
+            
+            axios.delete('http://localhost:5000/deleteTask', {
+                params: {
+                    taskId: idd
+                }})
             .then((response) => {
               alert(response.data);
             }, (error) => {
               console.log(error);
             });
-            arr.splice(i,1);
-        }
+            for (var i=0;i<arr.length;i++){
+                if(arr[i].id==idd){
+            arr.splice(i,1); 
     }
+}
 }
